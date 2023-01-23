@@ -20,6 +20,8 @@ const getTriggerFromAGrinderyWorkflow = require("./triggers/trigger_from_a_grind
 
 const getListDriversWithTriggers = require("./triggers/list_drivers_with_triggers");
 
+const listChains = require("./triggers/listChains");
+
 module.exports = {
   // This is just shorthand to reference the installed dependencies you have.
   // Zapier will need to know these before we can upload.
@@ -34,6 +36,7 @@ module.exports = {
 
   // If you want your trigger to show up, you better include it here!
   triggers: {
+    [listChains.key]: listChains,
     [getTriggerZapFromGrindery.key]: getTriggerZapFromGrindery,
     [listDrivers.key]: listDrivers,
     [getListDriverActions.key]: getListDriverActions,
