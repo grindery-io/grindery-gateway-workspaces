@@ -107,6 +107,13 @@ const getDynamicInputFields = async (z, bundle, driver, operation) => {
         if (field.helpText) {
           input.helpText = field.helpText;
         }
+        if (
+          field.key === "_grinderyChain" &&
+          !field.choices &&
+          !field.default
+        ) {
+          input.dynamic = "list_chains_trigger.key";
+        }
         input.altersDynamicFields = true;
         return input;
       })) ||
