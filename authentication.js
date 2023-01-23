@@ -54,47 +54,23 @@ const refreshAccessToken = (z, bundle) => {
   });
 };
 
-const testAuth = (z, bundle) => {
-  // Normally you want to make a request to an endpoint that is either specifically designed to test auth, or one that
-  // every user will have access to, such as an account or profile endpoint like /me.
+const testAuth = async (z, bundle) => {
   const client = new NexusClient();
+  client.authenticate(`${bundle.authData.access_token}`);
+  let workflows;
   try {
-    client.authenticate(`${bundle.authData.access_token}`);
-    const user = client.getUser();
-    if (user !== null) {
-      return { address: user.address };
-    } else {
-      return null;
-    }
+    workflows = await client.listWorkflows();
   } catch (error) {
-    if (error.message === "Invalid access token") {
-      throw new z.errors.RefreshAuthError();
-    }
+    throw new z.errors.RefreshAuthError();
+  }
+  const user = client.getUser();
+  if (user) {
+    // return user's wallet address is short format, e.g. 0x44Ab...f5c0
+    return { id: user.address_short };
+  } else {
+    throw new Error("The access token you supplied is not valid");
   }
 };
-
-/*const refreshAccessToken = async (z, bundle) => {
-  const response = await z.request({
-    url: "https://orchestrator.grindery.org/oauth/token",
-    method: "POST",
-    body: {
-      grant_type: "refresh_token",
-      refresh_token: bundle.authData.refresh_token,
-    },
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-    },
-  });
-
-  // If you're using core v9.x or older, you should call response.throwForStatus()
-  // or verify response.status === 200 before you continue.
-
-  // This function should return `access_token`.
-  // If the refresh token stays constant, no need to return it.
-  // If the refresh token does change, return it here to update the stored value in
-  // Zapier
-  z.console.log("Refresh Token Ran: ", response.data);
-};*/
 
 module.exports = {
   config: {
@@ -143,7 +119,7 @@ module.exports = {
     // be `{{X}}`. This can also be a function that returns a label. That function has
     // the standard args `(z, bundle)` and data returned from the test can be accessed
     // in `bundle.inputData.X`.
-    connectionLabel: "{{address}}",
+    connectionLabel: "{{id}}",
   },
   befores: [],
   afters: [],
