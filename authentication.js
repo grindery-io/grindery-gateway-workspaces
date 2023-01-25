@@ -65,8 +65,22 @@ const testAuth = async (z, bundle) => {
   }
   const user = client.getUser();
   if (user) {
-    // return user's wallet address is short format, e.g. 0x44Ab...f5c0
-    return { id: user.address_short };
+    if (!user.workspace) {
+      // return user's wallet address is short format, e.g. 0x44Ab...f5c0
+      return { id: user.address_short };
+    } else {
+      const workspaces = await client.listWorkspaces();
+      const workspace = (workspaces || []).find(
+        (ws) => ws && ws.key === user.workspace
+      );
+      const workspaceName = (workspace && workspace.title) || "";
+      // return user's wallet address is short format + workspace name, e.g. 0x44Ab...f5c0 - Custom Workspace
+      return {
+        id: `${user.address_short}${
+          workspaceName ? " - " + workspaceName : ""
+        }`,
+      };
+    }
   } else {
     throw new Error("The access token you supplied is not valid");
   }
