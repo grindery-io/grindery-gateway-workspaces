@@ -289,6 +289,53 @@ module.exports = {
           let driver_triggers = response.triggers;
           let choices = {};
           let triggersInputField = [];
+          /*if (
+            response.authentication &&
+            response.authentication.type === "oauth2"
+          ) {
+            client.authenticate(bundle.authData.access_token);
+            const credentials = await client.listAuthCredentials(
+              bundle.inputData.driver_id || "",
+              "staging"
+            );
+            z.console.log("credentials", credentials);
+            const credentialsField = {
+              key: "auth_credentials",
+              label: "Select account",
+              type: "string",
+              altersDynamicFields: true,
+            };
+            let choices = {};
+            credentials.map((cred) => {
+              choices[cred.key] = cred.name;
+            });
+            choices["add_new"] = "Sign in to a new account";
+            credentialsField.choices = choices;
+
+            triggersInputField.push(credentialsField);
+
+            if (
+              bundle.inputData.auth_credentials &&
+              bundle.inputData.auth_credentials === "add_new"
+            ) {
+              const authLink = `https://orchestrator.grindery.org/credentials/staging/${bundle.inputData.driver_id}/auth?access_token=${bundle.authData.access_token}&redirect_uri=https://flow.grindery.org/complete_auth`;
+
+              triggersInputField.push({
+                key: "auth_copy",
+                label: "Authentication",
+                type: "copy",
+                helpText: `Please, click the link and follow sign-in process: [Sign-in](${authLink}).`,
+              });
+              triggersInputField.push({
+                key: "auth_completed",
+                label: "I have completed the sign in flow",
+                type: "boolean",
+                default: false,
+                helpText: "Set to TRUE once you are done with authentication",
+                altersDynamicFields: true,
+              });
+            }
+          }*/
           if (driver_triggers) {
             let this_selected_trigger = driver_triggers.filter(
               (trigger) => trigger.key === bundle.inputData.trigger_id
@@ -356,7 +403,9 @@ module.exports = {
                       ...temp,
                     };
                   }
+                  //if (bundle.inputData.auth_completed) {
                   triggersInputField.push(temp);
+                  //}
                 });
               }
               return triggersInputField;

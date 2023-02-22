@@ -204,6 +204,8 @@ const getInputFields = async (z, bundle) => {
       let this_selected_action = driver_actions.filter(
         (action) => action.key === bundle.inputData.action_id
       );
+      let inputFields = [];
+
       if (this_selected_action.length >= 0) {
         //DEBUG MESSAGE
         z.console.log("User selected action is: ", this_selected_action[0]);
@@ -267,17 +269,19 @@ const getInputFields = async (z, bundle) => {
             }
             actionsInputField.push(temp);
           });
-          return actionsInputField;
+          inputFields = [...inputFields, ...actionsInputField];
         } else {
           if (this_selected_action[0].operation.inputFieldProviderUrl) {
-            return await getDynamicInputFields(
+            const dynamicInputFields = await getDynamicInputFields(
               z,
               bundle,
               bundle.inputData.driver_id,
               bundle.inputData.action_id
             );
+            inputFields = [...inputFields, ...dynamicInputFields];
           }
         }
+        return inputFields;
       }
     }
   } catch (error) {
