@@ -3,7 +3,7 @@ const NexusClient = require("grindery-nexus-client").default;
 const perform = async (z, bundle) => {
   const client = new NexusClient();
   try {
-    let chains = await client.listChains("evm");
+    let chains = await client.chain.list({ type: "evm" });
     // this should return an array of objects
 
     if (chains) {

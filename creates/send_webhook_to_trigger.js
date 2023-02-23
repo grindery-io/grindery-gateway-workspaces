@@ -3,9 +3,8 @@ const NexusClient = require("grindery-nexus-client").default;
 // create a particular send_webhook_to_trigger by name
 const perform = async (z, bundle) => {
   //const token = await client.getToken();
-  const client = new NexusClient();
+  const client = new NexusClient(bundle.authData.access_token);
   try {
-    client.authenticate(`${bundle.authData.access_token}`);
     //const nexus_response = await client.listWorkspaces();
     const payload = {
       param1: bundle.inputData.param1 ? bundle.inputData.param1 : "",
@@ -19,11 +18,11 @@ const perform = async (z, bundle) => {
       param9: bundle.inputData.param9 ? bundle.inputData.param9 : "",
       param10: bundle.inputData.param10 ? bundle.inputData.param10 : "",
     };
-    const nexus_response = await client.callWebhook(
-      "zapier",
-      "waitForZap",
-      { payload: payload, token: bundle.inputData.workflow_id } //optional string 'staging' 
-    );
+    const nexus_response = await client.connector.callWebhook({
+      connectorKey: "zapier",
+      operationKey: "waitForZap",
+      body: { payload: payload, token: bundle.inputData.workflow_id }, //optional string 'staging'
+    });
 
     z.console.log("Nexus Response:", JSON.stringify(nexus_response));
 
@@ -47,7 +46,7 @@ module.exports = {
   display: {
     label: "Grindery Flow",
     description: "Trigger existing workflows in Grindery Flow",
-    hidden: true
+    hidden: true,
   },
 
   operation: {
@@ -66,13 +65,12 @@ module.exports = {
         dynamic: "workspace.key",
       },
       async function (z, bundle) {
-        const client = new NexusClient();
+        const client = new NexusClient(bundle.authData.access_token);
         try {
-          client.authenticate(`${bundle.authData.access_token}`);
           let nexus_response = [];
-          const getWorkspaces = await client.listWorkspaces();
+          const getWorkspaces = await client.workspace.list();
           if (bundle.inputData.workspace_id === "default") {
-            nexus_response = await client.listWorkflows();
+            nexus_response = await client.workflow.list({});
           } else {
             z.console.log("Returned Workspaces", JSON.stringify(getWorkspaces));
             //filter list that matches bundle.inputData.workspace_id - the selected id from dropdown above
@@ -81,10 +79,10 @@ module.exports = {
             );
 
             // z.console.log(`This workspaces token is: ${thisWorkspace.token}`);
-            client.authenticate(`${thisWorkspace[0].token}`);
-            nexus_response = await client.listWorkflows(
-              bundle.inputData.workspace_id
-            );
+            const client2 = new NexusClient(`${thisWorkspace[0].token}`);
+            nexus_response = await client2.workflow.list({
+              workspaceKey: bundle.inputData.workspace_id,
+            });
           }
 
           if (nexus_response) {

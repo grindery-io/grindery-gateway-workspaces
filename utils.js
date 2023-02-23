@@ -2,9 +2,8 @@ const NexusClient = require("grindery-nexus-client").default;
 
 const getCreatorId = (token) => {
   try {
-    const client = new NexusClient();
-    client.authenticate(token);
-    const user = client.getUser();
+    const client = new NexusClient(token);
+    const user = client.user.get();
     return user.id;
   } catch (error) {
     //force token refresh if invalid
@@ -26,18 +25,21 @@ const uniqueID = () => {
 };
 
 const getDynamicInputFields = async (z, bundle, driver, operation) => {
-  const client = new NexusClient();
-  client.authenticate(`${bundle.authData.access_token}`);
+  const client = new NexusClient(bundle.authData.access_token);
   let res;
   try {
-    res = await client.callInputProvider(driver, operation, {
-      jsonrpc: "2.0",
-      method: "grinderyNexusConnectorUpdateFields",
-      id: new Date(),
-      params: {
-        key: operation,
-        fieldData: bundle.inputData,
-        authentication: "",
+    res = await client.connector.callInputProvider({
+      connectorKey: driver,
+      operationKey: operation,
+      body: {
+        jsonrpc: "2.0",
+        method: "grinderyNexusConnectorUpdateFields",
+        id: new Date(),
+        params: {
+          key: operation,
+          fieldData: bundle.inputData,
+          authentication: "",
+        },
       },
     });
   } catch (error) {
@@ -123,16 +125,16 @@ const getDynamicInputFields = async (z, bundle, driver, operation) => {
 
 const performGrinderyAction = async (z, bundle) => {
   //get the selected driver, get the selected actions (and input fields), package the data and run action
-  const client = new NexusClient();
+  const client = new NexusClient(bundle.authData.access_token);
   let step = {}; //step object
   let input = { ...bundle.inputData }; //input object
   delete input.driver_id;
   delete input.action_id;
   try {
     //Get the driver
-    let selected_driver_response = await client.getDriver(
-      bundle.inputData.driver_id
-    );
+    let selected_driver_response = await client.connector.get({
+      driverKey: bundle.inputData.driver_id,
+    });
     let selected_driver_actions = selected_driver_response.actions; //get the driver's actions
     let filteredActionArray = [];
     //get the selected driver action
@@ -169,8 +171,8 @@ const performGrinderyAction = async (z, bundle) => {
           z.console.log("Input Object: ", input);
         }
       }
-      client.authenticate(`${bundle.authData.access_token}`);
-      const nexus_response = await client.runAction(step, input); //optional string 'staging'
+
+      const nexus_response = await client.connector.runAction({ step, input }); //optional string 'staging'
       z.console.log("Response from runAction: ", nexus_response);
       if (nexus_response) {
         return nexus_response;
@@ -192,7 +194,9 @@ const performGrinderyAction = async (z, bundle) => {
 const getInputFields = async (z, bundle) => {
   const client = new NexusClient();
   try {
-    let response = await client.getDriver(bundle.inputData.driver_id);
+    let response = await client.connector.get({
+      driverKey: bundle.inputData.driver_id,
+    });
     //z.console.log("listing driver details: ", response);
     let driver_actions = response.actions; //match the selected driver
     let choices = {};
@@ -296,11 +300,12 @@ const getOutputFields = async (z, bundle, type) => {
   if (!bundle.inputData.driver_id || !bundle.inputData.action_id || !type) {
     return [];
   }
-  const client = new NexusClient();
-  client.authenticate(`${bundle.authData.access_token}`);
+  const client = new NexusClient(bundle.authData.access_token);
   let selectedDriver;
   try {
-    selectedDriver = await client.getDriver(bundle.inputData.driver_id);
+    selectedDriver = await client.connector.get({
+      driverKey: bundle.inputData.driver_id,
+    });
   } catch (error) {
     if (error.message === "Invalid access token") {
       throw new z.errors.RefreshAuthError();

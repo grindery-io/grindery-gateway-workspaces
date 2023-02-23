@@ -108,7 +108,7 @@ module.exports = {
   display: {
     label: "Grindery Flow",
     description: "Connect Zapier to existing workflows in Grindery Flow",
-    hidden: true
+    hidden: true,
   },
 
   operation: {
@@ -130,18 +130,17 @@ module.exports = {
         dynamic: "workspace.key",
       },
       async function (z, bundle) {
-        const client = new NexusClient();
+        const client = new NexusClient(bundle.authData.access_token);
         try {
-          client.authenticate(`${bundle.authData.access_token}`);
           let nexus_response = [];
           z.console.log(
             "Selected Workspace ID ",
             bundle.inputData.workspace_id
           );
           if (bundle.inputData.workspace_id === "default") {
-            nexus_response = await client.listWorkflows();
+            nexus_response = await client.workflow.list({});
           } else {
-            const getWorkspaces = await client.listWorkspaces();
+            const getWorkspaces = await client.workspace.list();
             z.console.log("Returned Workspaces", JSON.stringify(getWorkspaces));
             //filter list that matches bundle.inputData.workspace_id - the selected id from dropdown above
             const thisWorkspace = getWorkspaces.filter(
@@ -155,10 +154,11 @@ module.exports = {
             } else {
               z.console.log("Workspace not found");
             }
-            client.authenticate(`${thisWorkspace[0].token}`);
-            nexus_response = await client.listWorkflows(
-              bundle.inputData.workspace_id
-            );
+            const client2 = new NexusClient(`${thisWorkspace[0].token}`);
+
+            nexus_response = await client2.workflow.list({
+              workspaceKey: bundle.inputData.workspace_id,
+            });
           }
 
           if (nexus_response) {

@@ -3,12 +3,14 @@ const NexusClient = require("grindery-nexus-client").default;
 // triggers on a new list_driver_actions with a certain tag
 const perform = async (z, bundle) => {
   const client = new NexusClient();
-  try{
-    let response = await client.getDriver(bundle.inputData.driver_id);
+  try {
+    let response = await client.connector.get({
+      driverKey: bundle.inputData.driver_id,
+    });
     z.console.log("List Driver Response: ", response);
     // this should return an array of objects
     let driver_actions = response.actions;
-  
+
     if (driver_actions) {
       var key_array = [];
       driver_actions.map((action) => {
@@ -22,8 +24,11 @@ const perform = async (z, bundle) => {
     } else {
       return [];
     }
-  }catch(error){
-    z.console.log("Auth Error in List Driver Actions Trigger (list_driver_actions.js)", error.message);
+  } catch (error) {
+    z.console.log(
+      "Auth Error in List Driver Actions Trigger (list_driver_actions.js)",
+      error.message
+    );
     if (error.message === "Invalid access token") {
       throw new z.errors.RefreshAuthError();
     }

@@ -2,10 +2,9 @@ const NexusClient = require("grindery-nexus-client").default;
 
 // triggers on a new getconnectors with a certain tag
 const perform = async (z, bundle) => {
-  const client = new NexusClient();
+  const client = new NexusClient(bundle.authData.access_token);
   try {
-    client.authenticate(`${bundle.authData.access_token}`);
-    const nexus_response = await client.listDrivers("production", "private");
+    const nexus_response = await client.connector.list({ access: "private" });
     z.console.log("Grinder Drivers", nexus_response);
 
     var key_array = [];
