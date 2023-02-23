@@ -5,7 +5,7 @@ const perform = async (z, bundle) => {
   const client = new NexusClient();
   try {
     client.authenticate(`${bundle.authData.access_token}`);
-    const nexus_response = await client.listDrivers();
+    const nexus_response = await client.listDrivers("production", "private");
     z.console.log("Grinder Drivers", nexus_response);
 
     var key_array = [];

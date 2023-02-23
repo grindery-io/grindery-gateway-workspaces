@@ -1,6 +1,6 @@
 {
   "name": "grindery-gateway-workspaces",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Grindery Gateway Workspaces",
   "repository": "grindery-io/grindery-gateway-workspaces",
   "homepage": "https://www.grindery.io/",
@@ -11,7 +11,7 @@
     "test": "jest --testTimeout 10000"
   },
   "dependencies": {
-    "grindery-nexus-client": "^0.9.9",
+    "grindery-nexus-client": "^0.9.13",
     "uuidv5": "^1.0.0",
     "zapier-platform-core": "12.0.3"
   },
