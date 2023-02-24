@@ -1,6 +1,11 @@
 const NexusClient = require("grindery-nexus-client").default;
 const { getCreatorId } = require("../utils");
 
+const workflowSource = {
+  staging: "urn:grindery-staging:zapier-workspaces",
+  production: "urn:grindery:zapier-workspaces",
+};
+
 //uniqueID Generate Token ID
 function uniqueID() {
   function s4() {
@@ -169,6 +174,7 @@ const subscribeHook = async (z, bundle) => {
             creator: creator,
             actions: action,
             trigger: trigger,
+            source: workflowSource.production,
           };
 
           //z.console.log("Workflow Object: ", workflow);
