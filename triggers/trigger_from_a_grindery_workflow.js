@@ -139,6 +139,31 @@ const subscribeHook = async (z, bundle) => {
               }
             });
           }
+          const credentials = await client.credentials.list({
+            connectorId: bundle.inputData.driver_id,
+            environment: "staging",
+          });
+          const credential = credentials.find(
+            (c) =>
+              c.key === bundle.inputData.auth_credentials ||
+              c.key === bundle.inputData.auth_new_account
+          );
+          const authentication = (credential && credential.token) || undefined;
+          const authenticationKey = (credential && credential.key) || undefined;
+
+          if (input.auth_credentials) {
+            delete input.auth_credentials;
+          }
+          if (input.auth_copy) {
+            delete input.auth_copy;
+          }
+          if (input.auth_completed) {
+            delete input.auth_completed;
+          }
+          if (input.auth_new_account) {
+            delete input.auth_new_account;
+          }
+
           if (this_trigger.operation.outputFields.length >= 1) {
             this_trigger.operation.outputFields.map((outField) => {
               output = {
@@ -152,7 +177,9 @@ const subscribeHook = async (z, bundle) => {
             type: "trigger",
             connector: bundle.inputData.driver_id,
             operation: bundle.inputData.trigger_id,
-            input: input,
+            input,
+            authentication,
+            authenticationKey,
           };
           z.console.log("Input Object: ", input);
           action = [
@@ -170,7 +197,7 @@ const subscribeHook = async (z, bundle) => {
 
           workflow = {
             state: "on",
-            title: `Trigger a Zap ${token}`,
+            title: `Trigger a Zap on ${thisDriver.name} app ${this_trigger.name} event`,
             creator: creator,
             actions: action,
             trigger: trigger,
@@ -180,8 +207,10 @@ const subscribeHook = async (z, bundle) => {
           //z.console.log("Workflow Object: ", workflow);
 
           //z.console.log("Attempting to create this workflow: ", workflow);
+          const user = client.user.get();
           const create_workflow_response = await client.workflow.create({
             workflow,
+            workspaceKey: user.workspace || undefined,
           });
           const data = await z.JSON.parse(response.content);
 
@@ -289,7 +318,7 @@ module.exports = {
         dynamic: "list_driver_triggers.key",
       },
       async function (z, bundle) {
-        const client = new NexusClient();
+        const client = new NexusClient(bundle.authData.access_token);
         try {
           let response = await client.connector.get({
             driverKey: bundle.inputData.driver_id,
@@ -298,58 +327,89 @@ module.exports = {
           let driver_triggers = response.triggers;
           let choices = {};
           let triggersInputField = [];
-          /*if (
-            response.authentication &&
-            response.authentication.type === "oauth2"
-          ) {
-            client.authenticate(bundle.authData.access_token);
-            const credentials = await client.listAuthCredentials(
-              bundle.inputData.driver_id || "",
-              "staging"
-            );
-            z.console.log("credentials", credentials);
-            const credentialsField = {
-              key: "auth_credentials",
-              label: "Select account",
-              type: "string",
-              altersDynamicFields: true,
-            };
-            let choices = {};
-            credentials.map((cred) => {
-              choices[cred.key] = cred.name;
-            });
-            choices["add_new"] = "Sign in to a new account";
-            credentialsField.choices = choices;
 
-            triggersInputField.push(credentialsField);
-
-            if (
-              bundle.inputData.auth_credentials &&
-              bundle.inputData.auth_credentials === "add_new"
-            ) {
-              const authLink = `https://orchestrator.grindery.org/credentials/staging/${bundle.inputData.driver_id}/auth?access_token=${bundle.authData.access_token}&redirect_uri=https://flow.grindery.org/complete_auth`;
-
-              triggersInputField.push({
-                key: "auth_copy",
-                label: "Authentication",
-                type: "copy",
-                helpText: `Please, click the link and follow sign-in process: [Sign-in](${authLink}).`,
-              });
-              triggersInputField.push({
-                key: "auth_completed",
-                label: "I have completed the sign in flow",
-                type: "boolean",
-                default: false,
-                helpText: "Set to TRUE once you are done with authentication",
-                altersDynamicFields: true,
-              });
-            }
-          }*/
           if (driver_triggers) {
             let this_selected_trigger = driver_triggers.filter(
               (trigger) => trigger.key === bundle.inputData.trigger_id
             );
             if (this_selected_trigger.length >= 0) {
+              if (
+                response.authentication &&
+                response.authentication.type === "oauth2" &&
+                this_selected_trigger[0].authentication !== "none"
+              ) {
+                const user = client.user.get();
+                const credentials = await client.credentials.list({
+                  connectorId: bundle.inputData.driver_id || "",
+                  environment: "staging",
+                });
+                z.console.log("credentials", credentials);
+                const credentialsField = {
+                  key: "auth_credentials",
+                  label: "Select account",
+                  type: "string",
+                  altersDynamicFields: true,
+                };
+                let choices = {};
+                credentials.map((cred) => {
+                  choices[cred.key] = cred.name;
+                });
+                choices["add_new"] = "Sign in to a new account";
+                credentialsField.choices = choices;
+
+                triggersInputField.push(credentialsField);
+
+                if (
+                  bundle.inputData.auth_credentials &&
+                  bundle.inputData.auth_credentials === "add_new"
+                ) {
+                  const authLink = `https://orchestrator.grindery.org/credentials/staging/${
+                    bundle.inputData.driver_id
+                  }/auth?access_token=${
+                    bundle.authData.access_token
+                  }&redirect_uri=https://flow.grindery.org/complete_auth/${
+                    user.workspace || "default"
+                  }`;
+
+                  triggersInputField.push({
+                    key: "auth_copy",
+                    label: "Authentication",
+                    type: "copy",
+                    helpText: `Please, click the link and follow sign-in process: [Sign-in](${authLink}).`,
+                  });
+                  triggersInputField.push({
+                    key: "auth_completed",
+                    label: "I have completed the sign in flow",
+                    type: "boolean",
+                    default: "false",
+                    helpText:
+                      "Set to TRUE once you are done with authentication",
+                    altersDynamicFields: true,
+                  });
+                  z.console.log(
+                    "typeof bundle.inputData.auth_completed",
+                    typeof bundle.inputData.auth_completed
+                  );
+                  z.console.log(
+                    "bundle.inputData.auth_completed",
+                    bundle.inputData.auth_completed
+                  );
+                  if (
+                    bundle.inputData.auth_completed &&
+                    bundle.inputData.auth_completed !== "false" &&
+                    credentials.length > 0
+                  ) {
+                    triggersInputField.push({
+                      key: "auth_new_account",
+                      label: "New account",
+                      type: "string",
+                      default: credentials[credentials.length - 1].key,
+                      helpText: credentials[credentials.length - 1].name,
+                      altersDynamicFields: true,
+                    });
+                  }
+                }
+              }
               z.console.log("Selected Driver: ", this_selected_trigger[0]);
               //filter computed:true
               filtered_trigger_input_fields =
@@ -412,9 +472,27 @@ module.exports = {
                       ...temp,
                     };
                   }
-                  //if (bundle.inputData.auth_completed) {
-                  triggersInputField.push(temp);
-                  //}
+                  if (
+                    response.authentication &&
+                    response.authentication.type === "oauth2" &&
+                    this_selected_trigger[0].authentication !== "none" &&
+                    ((bundle.inputData.auth_credentials &&
+                      bundle.inputData.auth_credentials === "add_new" &&
+                      bundle.inputData.auth_completed &&
+                      bundle.inputData.auth_completed !== "false") ||
+                      (bundle.inputData.auth_credentials &&
+                        bundle.inputData.auth_credentials !== "add_new"))
+                  ) {
+                    triggersInputField.push(temp);
+                  } else {
+                    if (
+                      !response.authentication ||
+                      response.authentication.type !== "oauth2" ||
+                      this_selected_trigger[0].authentication === "none"
+                    ) {
+                      triggersInputField.push(temp);
+                    }
+                  }
                 });
               }
               return triggersInputField;
