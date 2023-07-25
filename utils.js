@@ -1,5 +1,10 @@
 const NexusClient = require("grindery-nexus-client").default;
 
+const source = {
+  staging: "urn:grindery-staging:zapier-workspaces",
+  production: "urn:grindery:zapier-workspaces",
+};
+
 const getCreatorId = (token) => {
   try {
     const client = new NexusClient(token);
@@ -203,7 +208,11 @@ const performGrinderyAction = async (z, bundle) => {
         }
       }
 
-      const nexus_response = await client.connector.runAction({ step, input }); //optional string 'staging'
+      const nexus_response = await client.connector.runAction({
+        step,
+        input,
+        source: source.production,
+      }); //optional string 'staging'
       z.console.log("Response from runAction: ", nexus_response);
       if (nexus_response) {
         return nexus_response;
