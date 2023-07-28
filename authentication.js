@@ -108,6 +108,7 @@ module.exports = {
         params: {
           response_type: "code",
           redirect_uri: "{{bundle.inputData.redirect_uri}}",
+          workspace_required: "1",
           utm_source: "zapier-gateway-workspaces",
         },
       },
